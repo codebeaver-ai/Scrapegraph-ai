@@ -2,6 +2,7 @@
 Bridge class to integrate Burr into ScrapeGraphAI graphs
 [Burr](https://github.com/DAGWorks-Inc/burr)
 """
+# vittorio added this comment to trigger the tests
 import re
 import uuid
 from hashlib import md5
