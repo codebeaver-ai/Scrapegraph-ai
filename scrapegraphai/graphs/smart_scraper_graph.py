@@ -1,20 +1,22 @@
 """
 SmartScraperGraph Module
 """
+
 from typing import Optional
+
 from pydantic import BaseModel
-from scrapegraph_py import Client
-from scrapegraph_py.logger import sgai_logger
-from .base_graph import BaseGraph
-from .abstract_graph import AbstractGraph
+
 from ..nodes import (
+    ConditionalNode,
     FetchNode,
+    GenerateAnswerNode,
     ParseNode,
     ReasoningNode,
-    GenerateAnswerNode,
-    ConditionalNode,
 )
 from ..prompts import REGEN_ADDITIONAL_INFO
+from .abstract_graph import AbstractGraph
+from .base_graph import BaseGraph
+
 
 class SmartScraperGraph(AbstractGraph):
     """
@@ -56,6 +58,9 @@ class SmartScraperGraph(AbstractGraph):
 
         self.input_key = "url" if source.startswith("http") else "local_dir"
 
+        # for detailed logging of the SmartScraper API set it to True
+        self.verbose = config.get("verbose", False)
+
     def _create_graph(self) -> BaseGraph:
         """
         Creates the graph of nodes representing the workflow for web scraping.
@@ -64,6 +69,13 @@ class SmartScraperGraph(AbstractGraph):
             BaseGraph: A graph instance representing the web scraping workflow.
         """
         if self.llm_model == "scrapegraphai/smart-scraper":
+            try:
+                from scrapegraph_py import Client
+                from scrapegraph_py.logger import sgai_logger
+            except ImportError:
+                raise ImportError(
+                    "scrapegraph_py is not installed. Please install it using 'pip install scrapegraph-py'."
+                )
 
             sgai_logger.set_logging(level="INFO")
 
@@ -85,7 +97,7 @@ class SmartScraperGraph(AbstractGraph):
             return response
 
         fetch_node = FetchNode(
-            input="url| local_dir",
+            input="url | local_dir",
             output=["doc"],
             node_config={
                 "llm_model": self.llm_model,

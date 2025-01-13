@@ -7,7 +7,7 @@
 
 [![Downloads](https://img.shields.io/pepy/dt/scrapegraphai?style=for-the-badge)](https://pepy.tech/project/scrapegraphai)
 [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen?style=for-the-badge)](https://github.com/pylint-dev/pylint)
-[![Pylint](https://img.shields.io/github/actions/workflow/status/VinciGit00/Scrapegraph-ai/pylint.yml?label=Pylint&logo=github&style=for-the-badge)](https://github.com/VinciGit00/Scrapegraph-ai/actions/workflows/pylint.yml)
+[![Pylint](https://img.shields.io/github/actions/workflow/status/VinciGit00/Scrapegraph-ai/code-quality.yml?label=Pylint&logo=github&style=for-the-badge)](https://github.com/VinciGit00/Scrapegraph-ai/actions/workflows/code-quality.yml)
 [![CodeQL](https://img.shields.io/github/actions/workflow/status/VinciGit00/Scrapegraph-ai/codeql.yml?label=CodeQL&logo=github&style=for-the-badge)](https://github.com/VinciGit00/Scrapegraph-ai/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![](https://dcbadge.vercel.app/api/server/gkxQDAjfeX)](https://discord.gg/gkxQDAjfeX)
@@ -24,21 +24,6 @@ Just say which information you want to extract and the library will do it for yo
   <img src="https://raw.githubusercontent.com/VinciGit00/Scrapegraph-ai/main/docs/assets/sgai-hero.png" alt="ScrapeGraphAI Hero" style="width: 100%;">
 </p>
 
-## 🔗 ScrapeGraph API & SDKs
-If you are looking for a quick solution to integrate ScrapeGraph in your system, check out our powerful API [here!](https://dashboard.scrapegraphai.com/login)
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/VinciGit00/Scrapegraph-ai/main/docs/assets/api-banner.png" alt="ScrapeGraph API Banner" style="width: 100%;">
-</p>
-
-We offer SDKs in both Python and Node.js, making it easy to integrate into your projects. Check them out below:
-
-| SDK       | Language | GitHub Link                                                                 |
-|-----------|----------|-----------------------------------------------------------------------------|
-| Python SDK | Python   | [scrapegraph-py](https://github.com/ScrapeGraphAI/scrapegraph-sdk/tree/main/scrapegraph-py) |
-| Node.js SDK | Node.js  | [scrapegraph-js](https://github.com/ScrapeGraphAI/scrapegraph-sdk/tree/main/scrapegraph-js) |
-
-The Official API Documentation can be found [here](https://docs.scrapegraphai.com/).
 
 ## 🚀 Quick install
 
@@ -47,34 +32,11 @@ The reference page for Scrapegraph-ai is available on the official page of PyPI:
 ```bash
 pip install scrapegraphai
 
+# IMPORTANT (for fetching websites content)
 playwright install
 ```
 
 **Note**: it is recommended to install the library in a virtual environment to avoid conflicts with other libraries 🐱
-
-<details>
-<summary><b>Optional Dependencies</b></summary>
-Additional dependecies can be added while installing the library:
-
-- <b>More Language Models</b>: additional language models are installed, such as Fireworks, Groq, Anthropic, Hugging Face, and Nvidia AI Endpoints.
-
-  This group allows you to use additional language models like Fireworks, Groq, Anthropic, Together AI, Hugging Face, and Nvidia AI Endpoints.
-  ```bash
-  pip install scrapegraphai[other-language-models]
-  ```
-- <b>Semantic Options</b>: this group includes tools for advanced semantic processing, such as Graphviz.
-
-  ```bash
-  pip install scrapegraphai[more-semantic-options]
-  ```
-
-- <b>Browsers Options</b>: this group includes additional browser management tools/services, such as Browserbase.
-
-  ```bash
-  pip install scrapegraphai[more-browser-options]
-  ```
-
-</details>
 
 
 ## 💻 Usage
@@ -84,14 +46,13 @@ The most common one is the `SmartScraperGraph`, which extracts information from 
 
 
 ```python
-import json
 from scrapegraphai.graphs import SmartScraperGraph
 
 # Define the configuration for the scraping pipeline
 graph_config = {
     "llm": {
-        "api_key": "YOUR_OPENAI_APIKEY",
-        "model": "openai/gpt-4o-mini",
+        "model": "ollama/llama3.2",
+        "model_tokens": 8192
     },
     "verbose": True,
     "headless": False,
@@ -99,33 +60,59 @@ graph_config = {
 
 # Create the SmartScraperGraph instance
 smart_scraper_graph = SmartScraperGraph(
-    prompt="Extract me all the news from the website",
-    source="https://www.wired.com",
+    prompt="Extract useful information from the webpage, including a description of what the company does, founders and social media links",
+    source="https://scrapegraphai.com/",
     config=graph_config
 )
 
 # Run the pipeline
 result = smart_scraper_graph.run()
+
+import json
 print(json.dumps(result, indent=4))
 ```
+
+> [!NOTE]
+> For OpenAI and other models you just need to change the llm config!
+> ```python
+>graph_config = {
+>    "llm": {
+>        "api_key": "YOUR_OPENAI_API_KEY",
+>        "model": "openai/gpt-4o-mini",
+>    },
+>    "verbose": True,
+>    "headless": False,
+>}
+>```
+
 
 The output will be a dictionary like the following:
 
 ```python
-"result": {
-    "news": [
-      {
-        "title": "The New Jersey Drone Mystery May Not Actually Be That Mysterious",
-        "link": "https://www.wired.com/story/new-jersey-drone-mystery-maybe-not-drones/",
-        "author": "Lily Hay Newman"
-      },
-      {
-        "title": "Former ByteDance Intern Accused of Sabotage Among Winners of Prestigious AI Award",
-        "link": "https://www.wired.com/story/bytedance-intern-best-paper-neurips/",
-        "author": "Louise Matsakis"
-      },
-    ...
-    ]
+{
+    "description": "ScrapeGraphAI transforms websites into clean, organized data for AI agents and data analytics. It offers an AI-powered API for effortless and cost-effective data extraction.",
+    "founders": [
+        {
+            "name": "Marco Perini",
+            "role": "Founder & Technical Lead",
+            "linkedin": "https://www.linkedin.com/in/perinim/"
+        },
+        {
+            "name": "Marco Vinciguerra",
+            "role": "Founder & Software Engineer",
+            "linkedin": "https://www.linkedin.com/in/marco-vinciguerra-7ba365242/"
+        },
+        {
+            "name": "Lorenzo Padoan",
+            "role": "Founder & Product Engineer",
+            "linkedin": "https://www.linkedin.com/in/lorenzo-padoan-4521a2154/"
+        }
+    ],
+    "social_media_links": {
+        "linkedin": "https://www.linkedin.com/company/101881123",
+        "twitter": "https://x.com/scrapegraphai",
+        "github": "https://github.com/ScrapeGraphAI/Scrapegraph-ai"
+    }
 }
 ```
 There are other pipelines that can be used to extract information from multiple pages, generate Python scripts, or even generate audio files.
@@ -145,19 +132,39 @@ It is possible to use different LLM through APIs, such as **OpenAI**, **Groq**, 
 
 Remember to have [Ollama](https://ollama.com/) installed and download the models using the **ollama pull** command, if you want to use local models.
 
-## 🔍 Demo
-Official streamlit demo:
-
-[![My Skills](https://skillicons.dev/icons?i=react)](https://scrapegraph-demo-demo.streamlit.app)
-
-Try it directly on the web using Google Colab:
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1sEZBonBMGP44CtO6GQTwAlL0BGJXjtfd?usp=sharing)
 
 ## 📖 Documentation
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1sEZBonBMGP44CtO6GQTwAlL0BGJXjtfd?usp=sharing)
+
 The documentation for ScrapeGraphAI can be found [here](https://scrapegraph-ai.readthedocs.io/en/latest/).
 Check out also the Docusaurus [here](https://docs-oss.scrapegraphai.com/).
+
+## 🤝 Contributing
+
+Feel free to contribute and join our Discord server to discuss with us improvements and give us suggestions!
+
+Please see the [contributing guidelines](https://github.com/VinciGit00/Scrapegraph-ai/blob/main/CONTRIBUTING.md).
+
+[![My Skills](https://skillicons.dev/icons?i=discord)](https://discord.gg/uJN7TYcpNa)
+[![My Skills](https://skillicons.dev/icons?i=linkedin)](https://www.linkedin.com/company/scrapegraphai/)
+[![My Skills](https://skillicons.dev/icons?i=twitter)](https://twitter.com/scrapegraphai)
+
+## 🔗 ScrapeGraph API & SDKs
+If you are looking for a quick solution to integrate ScrapeGraph in your system, check out our powerful API [here!](https://dashboard.scrapegraphai.com/login)
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/VinciGit00/Scrapegraph-ai/main/docs/assets/api-banner.png" alt="ScrapeGraph API Banner" style="width: 100%;">
+</p>
+
+We offer SDKs in both Python and Node.js, making it easy to integrate into your projects. Check them out below:
+
+| SDK       | Language | GitHub Link                                                                 |
+|-----------|----------|-----------------------------------------------------------------------------|
+| Python SDK | Python   | [scrapegraph-py](https://github.com/ScrapeGraphAI/scrapegraph-sdk/tree/main/scrapegraph-py) |
+| Node.js SDK | Node.js  | [scrapegraph-js](https://github.com/ScrapeGraphAI/scrapegraph-sdk/tree/main/scrapegraph-js) |
+
+The Official API Documentation can be found [here](https://docs.scrapegraphai.com/).
 
 ## 🏆 Sponsors
 <div style="text-align: center;">
@@ -174,16 +181,6 @@ Check out also the Docusaurus [here](https://docs-oss.scrapegraphai.com/).
     <img src="https://raw.githubusercontent.com/VinciGit00/Scrapegraph-ai/main/docs/assets/scrapedo.png" alt="Stats" style="width: 11%;">
   </a>
 </div>
-
-## 🤝 Contributing
-
-Feel free to contribute and join our Discord server to discuss with us improvements and give us suggestions!
-
-Please see the [contributing guidelines](https://github.com/VinciGit00/Scrapegraph-ai/blob/main/CONTRIBUTING.md).
-
-[![My Skills](https://skillicons.dev/icons?i=discord)](https://discord.gg/uJN7TYcpNa)
-[![My Skills](https://skillicons.dev/icons?i=linkedin)](https://www.linkedin.com/company/scrapegraphai/)
-[![My Skills](https://skillicons.dev/icons?i=twitter)](https://twitter.com/scrapegraphai)
 
 ## 📈 Telemetry 
 We collect anonymous usage metrics to enhance our package's quality and user experience. The data helps us prioritize improvements and ensure compatibility. If you wish to opt-out, set the environment variable SCRAPEGRAPHAI_TELEMETRY_ENABLED=false. For more information, please refer to the documentation [here](https://scrapegraph-ai.readthedocs.io/en/latest/scrapers/telemetry.html).

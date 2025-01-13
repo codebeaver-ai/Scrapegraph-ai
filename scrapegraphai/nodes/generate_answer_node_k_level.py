@@ -1,20 +1,32 @@
 """
 GenerateAnswerNodeKLevel Module
 """
+
 from typing import List, Optional
+
 from langchain.prompts import PromptTemplate
-from tqdm import tqdm
+from langchain_aws import ChatBedrock
+from langchain_community.chat_models import ChatOllama
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.runnables import RunnableParallel
-from langchain_openai import ChatOpenAI, AzureChatOpenAI
 from langchain_mistralai import ChatMistralAI
-from langchain_aws import ChatBedrock
-from ..utils.output_parser import get_structured_output_parser, get_pydantic_output_parser
-from .base_node import BaseNode
+from langchain_openai import ChatOpenAI
+from tqdm import tqdm
+
 from ..prompts import (
-    TEMPLATE_CHUNKS, TEMPLATE_NO_CHUNKS, TEMPLATE_MERGE,
-    TEMPLATE_CHUNKS_MD, TEMPLATE_NO_CHUNKS_MD, TEMPLATE_MERGE_MD
+    TEMPLATE_CHUNKS,
+    TEMPLATE_CHUNKS_MD,
+    TEMPLATE_MERGE,
+    TEMPLATE_MERGE_MD,
+    TEMPLATE_NO_CHUNKS,
+    TEMPLATE_NO_CHUNKS_MD,
 )
+from ..utils.output_parser import (
+    get_pydantic_output_parser,
+    get_structured_output_parser,
+)
+from .base_node import BaseNode
+
 
 class GenerateAnswerNodeKLevel(BaseNode):
     """
@@ -44,6 +56,13 @@ class GenerateAnswerNodeKLevel(BaseNode):
         super().__init__(node_name, "node", input, output, 2, node_config)
 
         self.llm_model = node_config["llm_model"]
+
+        if isinstance(node_config["llm_model"], ChatOllama):
+            if node_config.get("schema", None) is None:
+                self.llm_model.format = "json"
+            else:
+                self.llm_model.format = self.node_config["schema"].model_json_schema()
+
         self.embedder_model = node_config.get("embedder_model", None)
         self.verbose = node_config.get("verbose", False)
         self.force = node_config.get("force", False)
@@ -65,7 +84,9 @@ class GenerateAnswerNodeKLevel(BaseNode):
                 format_instructions = "NA"
             else:
                 if not isinstance(self.llm_model, ChatBedrock):
-                    output_parser = get_pydantic_output_parser(self.node_config["schema"])
+                    output_parser = get_pydantic_output_parser(
+                        self.node_config["schema"]
+                    )
                     format_instructions = output_parser.get_format_instructions()
                 else:
                     output_parser = None
@@ -78,10 +99,12 @@ class GenerateAnswerNodeKLevel(BaseNode):
                 output_parser = None
                 format_instructions = ""
 
-        if isinstance(self.llm_model, (ChatOpenAI, AzureChatOpenAI)) \
-            and not self.script_creator \
-            or self.force \
-            and not self.script_creator or self.is_md_scraper:
+        if (
+            not self.script_creator
+            or self.force
+            and not self.script_creator
+            or self.is_md_scraper
+        ):
             template_no_chunks_prompt = TEMPLATE_NO_CHUNKS_MD
             template_chunks_prompt = TEMPLATE_CHUNKS_MD
             template_merge_prompt = TEMPLATE_MERGE_MD
@@ -99,35 +122,39 @@ class GenerateAnswerNodeKLevel(BaseNode):
 
         if state.get("embeddings"):
             import openai
+
             openai_client = openai.Client()
 
             answer_db = client.search(
-            collection_name="collection",
-            query_vector=openai_client.embeddings.create(
-                input=["What is the best to use for vector search scaling?"],
-                model=state.get("embeddings").get("model"),
+                collection_name="collection",
+                query_vector=openai_client.embeddings.create(
+                    input=["What is the best to use for vector search scaling?"],
+                    model=state.get("embeddings").get("model"),
+                )
+                .data[0]
+                .embedding,
             )
-            .data[0]
-            .embedding,
-        )
         else:
             answer_db = client.query(
-                collection_name="vectorial_collection",
-                query_text=user_prompt
+                collection_name="vectorial_collection", query_text=user_prompt
             )
 
         chains_dict = {}
-        elems =[state.get("docs")[elem.id-1] for elem in answer_db if elem.score>0.5]
+        elems = [
+            state.get("docs")[elem.id - 1] for elem in answer_db if elem.score > 0.5
+        ]
 
-        for i, chunk in enumerate(tqdm(elems,
-                                       desc="Processing chunks", disable=not self.verbose)):
+        for i, chunk in enumerate(
+            tqdm(elems, desc="Processing chunks", disable=not self.verbose)
+        ):
             prompt = PromptTemplate(
-                        template=template_chunks_prompt,
-                        input_variables=["format_instructions"],
-                        partial_variables={"context": chunk.get("document"),
-                                        "chunk_id": i + 1,
-                                     }
-                )
+                template=template_chunks_prompt,
+                input_variables=["format_instructions"],
+                partial_variables={
+                    "context": chunk.get("document"),
+                    "chunk_id": i + 1,
+                },
+            )
             chain_name = f"chunk{i+1}"
             chains_dict[chain_name] = prompt | self.llm_model
 
@@ -137,7 +164,7 @@ class GenerateAnswerNodeKLevel(BaseNode):
         merge_prompt = PromptTemplate(
             template=template_merge_prompt,
             input_variables=["context", "question"],
-            partial_variables={"format_instructions": format_instructions}
+            partial_variables={"format_instructions": format_instructions},
         )
 
         merge_chain = merge_prompt | self.llm_model
